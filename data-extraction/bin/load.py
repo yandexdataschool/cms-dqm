@@ -14,7 +14,7 @@ def get_index(leaves, indxes):
   """
   return [ leaf + "[%d]" % index for leaf in leaves for index in indxes ]
 
-def split_by_events(data_root, leaves, batch_size, test_leaf = 0):
+def split_by_events(data_root, leaves, batch_size, test_leaf = 0, test_leaf_name = 'momentum'):
   """
   Turns data from root numpy into matrix <N events> by <number of features>.
   Returns if another batch is needed by testing test_leaf (usually pt - momentum) against exact float zero.
@@ -31,7 +31,13 @@ def split_by_events(data_root, leaves, batch_size, test_leaf = 0):
     event_idx = d[:, test_leaf] > 0.0
 
     ### other features must be exact zero also
-    assert np.all(d[np.logical_not(event_idx), :] == 0.0)
+    if not np.all(d[np.logical_not(event_idx), :] == 0.0):
+      from warnings import warn
+      warn('Not all features given non-negative test leaf (%s) are exact zero!' % test_leaf_name)
+      nan_index = np.logical_not(event_idx)
+
+      affected_leaves = [ (i, leaf) for i, leaf in enumerate(leaves) if np.any(d[nan_index, i] != 0.0)]
+      warn('Non-zero leafs: [%s]' % (', '.join(leaf for i, leaf in affected_leaves)))
 
     events.append(d[event_idx, :])
 
