@@ -6,6 +6,8 @@ import root_numpy
 import warnings
 warnings.filterwarnings('ignore')
 
+import traceback
+
 import json
 
 def get_index(leaves, indxes):
@@ -203,11 +205,17 @@ if __name__ == "__main__":
     sys.exit(1)
 
   with open(file_list) as f:
-    files = [ x.strip() for x in f.read().split("\n")]
+    files = [ x.strip() for x in f.read().split("\n") ]
+    files = [ f for f in files if len(f) > 0 ]
 
   for path in files:
-    print "Processing file", path
-    start = time.time()
-    main(cfg, path, out_dir)
-    end = time.time()
-    print 'Done %.1f minutes' % ((end - start) / 60.0)
+    try:
+      print "Processing file %s" % path
+      start = time.time()
+      main(cfg, path, out_dir)
+      end = time.time()
+      print 'Done %.1f minutes' % ((end - start) / 60.0)
+    except Exception:
+      print "An error occurred during processing file %s" % path
+      print traceback.format_exc()
+      print 'Skipping...'
