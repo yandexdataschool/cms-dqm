@@ -2,11 +2,10 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{float}
-
 \begin{document}
 \title{Deep learning for inferring cause of data anomalies}
 
-\author{V~Azzolini$^1$, M Borisyak$^{2,3}$, G~Cerminara$^4$, D Derkach$^{2,3}$, G~Franzoni$^4$, F~De~Guio$^5$, O Koval$^{6,3}$, M~Pierini$^4$, A~Pol$^7$, F Ratnikov$^{2,3}$, F~Siroky$^4$, A~Ustyuzhanin$^{2,3}$ and J~R~Vlimant$^8$}
+\author{V.~Azzolini$^1$, M. Borisyak$^{2,3}$, G.~Cerminara$^4$, D. Derkach$^{2,3}$, G.~Franzoni$^4$, F.~De~Guio$^5$, O. Koval$^{6,3}$, M.~Pierini$^4$, A.~Pol$^7$, F. Ratnikov$^{2,3}$, F.~Siroky$^4$, A.~Ustyuzhanin$^{2,3}$ and J-R.~Vlimant$^8$}
 
 \address{$^1$ Massachusetts Institute of Technology, Cambridge, USA \\
 $^2$ National Research University Higher School of Economics,  Moscow, Russia \\
@@ -20,11 +19,10 @@ $^8$ California Institute of Technology, Pasadena, USA}
 \ead{fratnikov@hse.ru}
 
 
-
 \begin{abstract} 
-Daily operation of a large-scale experiment is a resource consuming task, particularly from perspectives of routine data quality monitoring. Typically, data comes from different channels (sub-detectors or other subsystems) and the global quality of data depends on the performance of each channel. In this work, we consider the problem of prediction which channel has caused anomalies in the detector behaviour.
-We introduce a generic deep learning model and prove, that, under reasonable assumptions, the model learns to identify 'channels' which are affected by an anomaly. Such model could be used for data quality manager cross-check and assistance and identifying good channels in anomalous data samples.
-The main novelty of the method is that the model does not require ground truth labels for each channel, only global flag is used. This effectively distinguishes the model from classical classification methods. Being applied to CERN CMS data,  this approach proves its ability to decompose anomaly by separate channels. 
+Daily operation of a large-scale experiment is a resource consuming task, particularly from perspectives of routine data quality monitoring. Typically, data comes from different sub-detectors and the global quality of data depends on the combinatorial performance of each of them. In this paper, the problem of identifying channels in which anomalies occurred is considered.
+We introduce a generic deep learning model and prove that, under reasonable assumptions, the model learns to identify 'channels' which are affected by an anomaly. Such model could be used for data quality manager cross-check and assistance and identifying good channels in anomalous data samples.
+The main novelty of the method is that the model does not require ground truth labels for each channel, only global flag is used. This effectively distinguishes the model from classical classification methods. Being applied to CMS data collected in the year 2010,  this approach proves its ability to decompose anomaly by separate channels. 
 \end{abstract}
 
 
@@ -32,38 +30,33 @@ The main novelty of the method is that the model does not require ground truth l
 
 \section{Introduction}
 Data quality monitoring is a crucial task for every large scale High Energy Physics experiment.
-The challenge is driven by the huge amount of data. Considerable amount of person power
-required for monitoring and classification. Previously, we designed the system [1], which automatically classifies marginal cases in general: both of 'good' an 'bad' data, and use human expert decision to classify remaining “grey area” cases. 
+The challenge is driven by the huge amount of data. A considerable amount of person power is required for monitoring and classification. Previously [1], we designed a system, which automatically classifies marginal cases in general: both of 'good' and 'bad' data, and use human expert decision to classify remaining “grey area” cases. 
 
-Typically, data comes from different sub-detectors or other subsystems, and the global data quality depends on the performance of each such channel. In this work, we consider the next type of problem, to predict which sub-detector is responsible for anomaly in the detector behaviour, knowing only global flag. A proposed system can indicate affected channels and draw the attention of human experts to the other channels, as maybe data from them is still useful.
-
-
+Typically, data comes from different sub-detectors or other subsystems, and the global data quality depends on on the combinatorial performance of each of them. In this work, we aim instead to predict which sub-detector is responsible for anomaly in the detector behaviour, knowing only global flag. For this study, we use data [2] acquired at CMS [3] at LHC in CERN. A proposed system can indicate affected channels and draw the attention of human experts to the other channels. Data from the channels, which are reconstructed relying primarily on normally operating sub-detectors, can be used for further specific physics analysis.
 
 
 \section{Data and feature extraction}
-In these proceedings we use data collected by the CMS experiment [2] at LHC in CERN. Data preprocessing procedure is the same as in the previous work [1], detailed description is presented there. 
+Data preprocessing procedure is the same as in the previous work [1], detailed description is presented there. 
 
-All data is divided into chunks - LumiSections, which are labelled as 'good' or 'bad'. Information from four channels (muons, photons, Particle Flow jets or calorimiter jets) for each LumiSections is used. Objects are quantiled by their momentum to have fixed number of features in each event. Then every selected object is characterized by its reconstructed physics properties: mass, spatial location, kinematics. And statistics for each feature for the entire lumisection is computed (5 percentiles, mean and variance).
+All data is divided into time quanta - LumiSections\footnote{Segment of data corresponding to 23 seconds of data taking}, which are labelled as 'good' or 'bad'. Physics object is a proxy for a particle recorded in the detector which is constructed from the recorded raw data from several sub-detectors. The information coming from four channels, which are equivalent to physics objects: muons, photons, particle flow jets (PF) or calorimeter jets (calo), per each LumiSection is used. Objects (equivalent to physics particles) are quantiled by their momentum\footnote{Three-dimensional vector quantity that related to mass and velocity of a particle} to have fixed number of features in each event. Then every selected object is characterized by its reconstructed physics properties: mass, spatial location, kinematics. And statistics for each feature for the entire lumisection is computed (5 percentiles, mean and variance). 
+Additionally, features like instant luminosity, number of particles in event and others were also introduced.
 
-Additionally as features for the following analysis
-scalar sum of momentum for all objects in the event,
-instant luminosity and number of particles in event are added.
-
-
-
+In total we have almost 16k data points (LumiSections) with 0.25 part of anomalies. There are 267 features in muon, 232 in photon, 126 in PF, 266 in calo channel. We split 0.1 part of data to validate our model during training. And the final test for our system is computing correlations between the method's predictions and experts’ labels for CMS sub-detectors.
 
 \section{Method}
-In order to predict a probability of anomaly in different sub-detectors separately 
+In order to predict a probability of anomaly in different channels separately 
 we build a special ‘multi-head’ neural network configuration (figure 1). 
 
 NN consist of four branches and each sub-networks has in input features from 
 corresponding channel. Each branch returns a score for its channel. At the end, sub-networks are
 connected and the whole network is trained to recover global labels.
 
-As network connection operator logistic regression and min operator with dropout could be used. In this proceedings we present results when sub-networks are connected with kind of 'Fuzzy AND' operator: \begin{eqnarray}
+In this proceedings we present results when sub-networks are connected with kind of 'Fuzzy AND' operator: \begin{eqnarray}
 \exp [\sum_{i=1}^4(f_{i} - 1)],
 \end{eqnarray}
-where $f_{i} - $ is an output of the last layer of sub-networks. It is proved for this operator, that under reasonable assumptions, the model learns to identify 'channels' which are affected by an anomaly.\footnote{The code of the systems with different operators for network connection and prof for 'Fuzzy AND' operator decomposition properties are available at \url{https://github.com/yandexdataschool/cms-dqm/} }
+where $f_{i} - $ is an output of the last layer of sub-networks. 
+
+It is proved for this operator, that under reasonable assumptions, the model learns to identify 'channels' which are affected by an anomaly.\footnote{Prof for 'Fuzzy AND' operator decomposition properties and code of the systems with different operators for network connection are available at \url{https://github.com/yandexdataschool/cms-dqm/} } As network connection operator, logistic regression and min operator with dropout could also be used. 
 
 \begin{figure}[h!]
 \begin{center}
@@ -73,33 +66,33 @@ where $f_{i} - $ is an output of the last layer of sub-networks. It is proved fo
 \end{figure}
 
 
-The main feature is that proposed approach uses only aggregated global quality tag for training, but allows predicting anomalies for separate channels.
+The main peculiarity is that proposed approach uses only aggregated global quality tag for training, but allows predicting anomalies for separate channels.
 
 In this way, each subnetwork returns score:
 \begin{itemize}
-\item close to 1 for good lumisections,
-\item close to 1 for anomalies “invisible” from subnetwork’s channel data,
+\item close to 1 for good lumisections;
+\item close to 1 for anomalies “invisible” from subnetwork’s channel data, but visible to other subnetworks channels in the NN method;
 \item close to 0 for anomalies “visible” from subnetwork’s channel data.
 \end{itemize}
 
 Thus NN decomposes anomalies by channels.
 
 
-'Fuzzy AND' approach assumes that there are anomalies not seen from all channels. It is desired setting, but it causes a problem of small gradients during training for close to the hyperplane samples, which are potentially visible from particular channel, but already with negative labels from other channels. Just cross-entropy loss for 'Fuzzy AND' output of the whole network is not sensitive enough in such cases. To resolve the problem and to accelerate the convergence we use a dynamic loss function:
+'Fuzzy AND' approach assumes that there are anomalies not seen from all channels. They look like 'good' data points in the channel, surrounded by them and are classified by this channel as 'good' too. It is desired setting, but it causes a problem of small gradients of 'Fuzzy AND' function for close to the hyperplane data points during training. Long time is needed to change the hyperplane slightly when anomalous data points, which are potentially visible from particular channel, have already 'bad' labels in other channels. Just cross-entropy loss for 'Fuzzy AND' output of the whole network is not sensitive enough in such cases. To resolve the problem and to accelerate the convergence we use a dynamic loss function:
 \begin{eqnarray}
 L' = (1-C) \cdot L + C \cdot (L_1 + L_2 + L_3 + L_4)/ 4 ,
 \end{eqnarray}
 where $L - $cross-entropy loss for 'Fuzzy AND' output of the network; $L_i - $ so called 'companion' losses, cross-entropy of corresponding sub-network scores against global labels; $C - $ decreasing along iterations constant to regulate amount of 'pretraining'.
 
-With such 'soft pretraining' dynamic loss function we can force sub-networks to be more accurate and to take care about ambiguous samples during the first training iterations, but then to pay more attention to the predictive power of the whole NN against global labels. Thus, simple enough separation hyperplane is constructed during training, and problem of small gradients, which is mentioned above, is avoided.
+With such 'soft pretraining' dynamic loss function we can force sub-networks to be more accurate and to take care about ambiguous samples during the first training iterations, but then to pay more attention to the predictive power of the whole NN against global labels. Thus, simple enough separation hyperplane is constructed during training, and problem of the small gradient, which is mentioned above, is avoided.
 
 \section{Results and discussions}
-Being applied to CERN CMS data, method proves its ability to decompose anomaly by separate sub-detectors. In figure 2 distributions of predictions in each NN branch are shown. As expected, we can see scores close to one for 'good' samples. And 'bad' data has two options, it could be visible from channel (score close to zero) or not. We can think about the second cases, as data is not affected by an anomaly and maybe it is still useful for for further physical analysis.
+Being applied to CERN 2010 CMS data, method proves its ability to decompose anomaly by separate channels. In figure 2 distributions of predictions in each NN branch are shown. As expected, we can see scores close to one for 'good' samples. And 'bad' data has two options, it could be visible from channel (score close to zero) or not. We can think about the second cases, as data is not affected by an anomaly and it is still useful for for further physical analysis.
 
-Thus, method suggests that most of anomalies are caused (or at least best detected) by calo channel and there is some of data from others channels, which does not look like like anomalous and can be saved.
+Thus, method suggests that most of anomalies occurred (or at least better identified) by calo channel. And there are some data from others channels, which does not look like anomalous (predicted labels close to one when the global label is "bad") and can be saved.
 
-In these experiments global predictive power of the whole network is rather high, ROC AUC score equals to 0.96.
-To verify obtained results we calculate correlations between sub-network predictions and experts' labels for CMS subsystems, which were not used for training (figure 3). All ROC AUC scores a higher than 0.5, it means that there is a clear correlation between sub-networks’ outputs and corresponding subsystem labels or some of them are almost independent. But there is no anti-correlations, as it is expected.
+In these experiments global predictive power of the whole network on validation set is rather high, ROC AUC score equals to 0.96.
+To verify obtained results we calculate correlations between sub-network predictions and experts' labels for CMS subsystems, which were not used for training (figure 3). All ROC AUC scores a higher than 0.5. It means that there is a clear correlation between sub-networks’ outputs and corresponding subsystem labels (for example: Muons vs Tracking) or some of them are almost independent (Photons vs DT muon chambers). But there is no anti-correlations, as it is expected. 
 
 \begin{figure}[H]
 \begin{minipage}[h!]{0.47\linewidth}
@@ -130,6 +123,9 @@ channels.}
 \caption{\label{label}ROC AUC scores of NN branches scores against experts' labels for CMS subsystems}
 \end{figure}
 
+\section*{Acknowledgements}
+The research leading to these results was partly supported by Russian Science Foundation under grant agreement N\textsuperscript{\underline{\scriptsize o}} 17-72-20127.
+
 
 
 \section{Conclusions}
@@ -137,15 +133,16 @@ In this work, we described a deep learning approach for inferring cause of data 
 with the CMS experiment in mind, we use an agnostic approach which allows the straightforward
 adaptation of the proposed algorithm to different experimental setups. Method shows its ability to decompose anomalies by separate channels, being applied to data collected by the CMS experiment at the LHC in 2010. While only global quality labels were used for training, we got clear correlation between sub-networks’ outputs and corresponding true subsystem labels, what proves correctness of obtained results.
 
-\section{Acknowledgements}
-The research leading to these results was partly supported by Russian Science Foundation under grant agreement N\textsuperscript{\underline{\scriptsize o}} 17-72-20127.
-
 \section*{References}
-\begin{thebibliography}{2}
-\item Borisyak M, Ratnikov F, Derkach D and Ustyuzhanin A. Towards automation of data quality system for CERN CMS experiment. {\tt arXiv:1709.08607 [physics.data-an]}, September 2017
+\begin{thebibliography}{3}
+\item Borisyak M, Ratnikov F, Derkach D and Ustyuzhanin A. Towards automation of data quality system for CERN CMS experiment. {\it ArXiv e-prints}, September 2017
 
 \item  Calderon A, Colling D, Huffman A, Lassila-Perini K, McCauley T, Rao A, Rodriguez-Marrero A and Sexton-Kennedy E 2015 {\it J. Phys.: Conf. Ser.} {\bf 664} 032027
+
+\item The CMS experiment at the CERN LHC, The CMS Collaboration 2008 {\it JINST} {\bf 3} S08004
 \end{thebibliography}
+
+
 
 \end{document}
 
