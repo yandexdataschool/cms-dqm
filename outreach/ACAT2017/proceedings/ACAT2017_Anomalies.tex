@@ -2,6 +2,10 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{float}
+
+\usepackage{lineno}
+\linenumbers
+
 \begin{document}
 \title{Deep learning for inferring cause of data anomalies}
 
@@ -123,23 +127,22 @@ channels.}
 \caption{\label{label}ROC AUC scores of NN branches scores against experts' labels for CMS subsystems}
 \end{figure}
 
-\section*{Acknowledgements}
-The research leading to these results was partly supported by Russian Science Foundation under grant agreement N\textsuperscript{\underline{\scriptsize o}} 17-72-20127.
-
-
 
 \section{Conclusions}
 In this work, we described a deep learning approach for inferring cause of data anomalies. While developed
 with the CMS experiment in mind, we use an agnostic approach which allows the straightforward
 adaptation of the proposed algorithm to different experimental setups. Method shows its ability to decompose anomalies by separate channels, being applied to data collected by the CMS experiment at the LHC in 2010. While only global quality labels were used for training, we got clear correlation between sub-networks’ outputs and corresponding true subsystem labels, what proves correctness of obtained results.
 
+\section*{Acknowledgements}
+The research leading to these results was partly supported by Russian Science Foundation under grant agreement N\textsuperscript{\underline{\scriptsize o}} 17-72-20127.
+
 \section*{References}
 \begin{thebibliography}{3}
-\item Borisyak M, Ratnikov F, Derkach D and Ustyuzhanin A. Towards automation of data quality system for CERN CMS experiment. {\it ArXiv e-prints}, September 2017
+\item Borisyak M, Ratnikov F, Derkach D and Ustyuzhanin A.{\it Towards automation of data quality system for CERN CMS experiment}.  {\tt arXiv:1709.08607 [physics.data-an]}, September 2017
 
 \item  Calderon A, Colling D, Huffman A, Lassila-Perini K, McCauley T, Rao A, Rodriguez-Marrero A and Sexton-Kennedy E 2015 {\it J. Phys.: Conf. Ser.} {\bf 664} 032027
 
-\item The CMS experiment at the CERN LHC, The CMS Collaboration 2008 {\it JINST} {\bf 3} S08004
+\item  CMS Collaboration, The CMS experiment at the CERN LHC, 2008 {\it JINST} {\bf 3} S08004
 \end{thebibliography}
 
 
