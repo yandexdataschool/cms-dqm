@@ -1,3 +1,4 @@
+
 \documentclass[a4paper]{jpconf}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -42,14 +43,14 @@ Typically, data comes from different sub-detectors or other subsystems, and the 
 \section{Data and feature extraction}
 Data preprocessing procedure is the same as in the previous work [1], and described in detailes there. 
 
-All data is divided into time quanta - LumiSections\footnote{Segment of data corresponding to 23 seconds of data taking}, which are labelled as 'good' or 'bad'. Physics object is a proxy for a particle recorded in the detector which is constructed from recorded raw data collected by  several sub-detectors. The information coming from four channels per each used LumiSection. These channels are equivalent to physics objects: muons, photons, particle flow jets (PF) or calorimeter jets (calo). Objects (equivalent to physics particles) are quantiled by their transverse momentum to have fixed number of features in each event. Then every selected object is characterized by its reconstructed physics properties: mass, spatial location, kinematics. And statistics for each feature for the entire lumisection is computed (5 percentiles, mean and variance). 
+All data is divided into time quanta - LumiSections\footnote{Segment of data corresponding to 23 seconds of data taking}, which are labelled as 'good' or 'bad'. Physics object is a proxy for a particle recorded in the detector which is constructed from recorded raw data collected by  several sub-detectors. The information coming from four channels per each used LumiSection. These channels are equivalent to physics objects: muons, photons, particle flow jets (PF) or calorimeter jets (calo). Objects (equivalent to physics particles) are quantiled by their transverse momentum to have fixed number of features in each event. Then every selected object is characterized by its reconstructed physics properties: mass, spatial location, kinematics. And statistics for each feature for the entire lumisection is computed (5 percentiles, mean and variance). For instance, 'muons\_mass\_q4\_p25' is one of the features in muon channel.
 Additionally, features like instant luminosity, number of particles in event and others were also introduced.
 
-In total we have almost 16k data points (LumiSections) 25\% of which were labeled as anomalous. There are 267 features in muon, 232 in photon, 126 in PF, 266 in calo channel. We use 10\% of data to validate our model during training. And the final test for our system is a computing correlations between the method predictions and experts’ labels for CMS sub-detectors.
+In total we have almost 16k data points (LumiSections) 25\% of which were labeled as anomalous. There are 267 features in muon, 232 in photon, 126 in PF, 266 in calo channel. We hold 10\% of data for tests. The final validation for our system is a computing correlations between the method predictions and experts’ labels for CMS sub-detectors.
 
 \section{Method}
 In order to predict a probability of anomaly in different channels separately 
-we build a special ‘multi-head’ neural network (NN) configuration presented in Fig. \ref{fig:nn}.
+we build a special ‘multi-head’ neural network (NN) configuration presented in Fig. \ref{fig:nn}. The model was implement with Lasagne and Theano [4-5].
 
 NN consist of four branches and each sub-networks has in input features from 
 corresponding channel. Each branch returns a score for its channel. At the end, sub-networks are
@@ -64,7 +65,7 @@ It is proved for this operator, that under reasonable assumptions, the model lea
 
 \begin{figure}[h!]
 \begin{center}
-\includegraphics[width=5in]{figures/net.png}
+\includegraphics[width=4.5in]{figures/net.png}
 \end{center}
 \caption{\label{fig:nn}NN architecture with four sub-networks for each channel}
 \end{figure}
@@ -91,28 +92,36 @@ where $L - $cross-entropy loss for 'Fuzzy AND' output of the network; $L_i - $ s
 With such 'soft pretraining' dynamic loss function we can force sub-networks to be more accurate and to take care about ambiguous samples during the first training iterations, but then to pay more attention to the predictive power of the whole NN against global labels. Thus, simple enough separation hyperplane is constructed during training, and problem of the small gradient, which is mentioned above, is avoided.
 
 \section{Results and discussions}
-Being applied to CMS data collected in 2010, method proves its ability to decompose anomaly by separate channels. Distributions of predictions in each NN branch are shown in Fig. \ref{fig:predictions}. As expected, we can see scores close to one for 'good' samples. And 'bad' data has two options, it could be visible from channel (score close to zero) or not. We can think about the second cases, as data is not affected by an anomaly and it is still useful for for further physical analysis.
+Being applied to CMS data collected in 2010, method proves its ability to decompose anomaly by separate channels. Distributions of predictions in each NN branch are shown in Fig. \ref{fig:predictions}. As expected, we can see scores close to one for 'good' samples. And 'bad' data has two options, it could be visible from channel (score close to zero) or not. We can think about the second cases, as data is not affected by an anomaly and it is still useful for for further physical analysis. This part of data is needed to be reviewed by CMS experts channel wise.
 
 Thus, method suggests that most of anomalies occurred (or at least better identified) by calo channel. And there are some data from others channels, which does not look like anomalous (predicted labels close to one when the global label is "bad") and can be saved.
 
 In these experiments global predictive power of the whole network on validation set is rather high, ROC AUC score equals to 0.96.
-To verify obtained results we calculate correlations between sub-network predictions and experts' labels for CMS subsystems, which were not used for training, as presented in Fig. \ref{fig:matrix}. All ROC AUC scores a higher than 0.5. It means that there is a clear correlation between sub-networks’ outputs and corresponding subsystem labels (for example: Muons vs Tracking) or some of them are almost independent (Photons vs DT muon chambers). But there is no anti-correlations, as it is expected. 
+To verify obtained results we calculate correlations between sub-network predictions and experts' labels for CMS subsystems, presented in Fig. \ref{fig:matrix}. Performance on the test part of the data is presented. Inclusive global labels were used for training, and all others were not. All ROC AUC scores a higher than 0.5. It means that there is a clear correlation between sub-networks’ outputs and corresponding subsystem labels or some of them are almost independent (scores close to 0.5), but there is no anti-correlations, as it is expected. For example, Muon branch predictions are similar to Muon expert's labels more than other branches. And it is less correlated with Jets, Photons/Electron and ECAL than others. A surprising observation is that NN don't sensitive CSC muon chambers anomalies. 
+
+Anomalies in 2010B CMS OpenData usually happens in several sub-detectors simultaneously. We selected lumisections with anomalies in the only one sub-detector to get more precise comparison, and computed percentage of such exclusive anomalies identified by NN branches, results are shown in Fig. \ref{fig:exc}. Unfortunately, there are only four such sub-detectors, and they don't contain enough number of anomalies for reliable interpretation. We observe perfect behavior of PF branch, which is not depended on muon chambers, but information from ECAL and HCAL is used for the reconstruction of PF physical properties. And one of the artifacts is that anomalies in RPC muon chambers are visible for calo branch.
+
+So, there are still various subtle effects that need to be studied and taken into account in order to get production quality. On this stage the system suits for expert cross-check assistant.
+And, as an automated approach and the expert statistics are not
+mutually exclusive, injection of expert statistics into the feature set is a good starting point for the improvement of the system.
+
+
 
 \begin{figure}[H]
-\begin{minipage}[h!]{0.47\linewidth}
-\center{\includegraphics[width=14pc]{figures/calo.png}} \\a) 
+\begin{minipage}[h!]{0.4\linewidth}
+\center{\includegraphics[width=12pc]{figures/calo.png}} \\a) 
 \end{minipage}
 \hfill
-\begin{minipage}[h!]{0.47\linewidth}
-\center{\includegraphics[width=14pc]{figures/PF.png}} \\b)
+\begin{minipage}[h!]{0.4\linewidth}
+\center{\includegraphics[width=12pc]{figures/PF.png}} \\b)
 \end{minipage}
 \vfill
-\begin{minipage}[h!]{0.47\linewidth}
-\center{\includegraphics[width=14pc]{figures/muons.png}}\\ c) 
+\begin{minipage}[h!]{0.4\linewidth}
+\center{\includegraphics[width=12pc]{figures/muons.png}}\\ c) 
 \end{minipage}
 \hfill
-\begin{minipage}[h!]{0.47\linewidth}
-\center{\includegraphics[width=14pc]{figures/photons.png}} \\ d) 
+\begin{minipage}[h!]{0.4\linewidth}
+\center{\includegraphics[width=12pc]{figures/photons.png}} \\ d) 
 \end{minipage}
 \caption{\label{fig:predictions} Distributions of predictions returned by NN branches build on features from a) calorimiter, b) particle flow jets, c) muons, d) photons
 channels.}
@@ -123,14 +132,21 @@ channels.}
 \begin{center}
 \includegraphics[width=5.5in]{figures/aucs.png}
 \end{center}
-\caption{\label{fig:matrix}ROC AUC scores of NN branches scores against experts' labels for CMS subsystems}
+\caption{\label{fig:matrix}ROC AUC scores of NN branches scores against experts' labels for CMS subsystems. Number of anomalies in each subsystem is given in the brackets.}
 \end{figure}
 
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=2.5in]{figures/exclusive.png}
+\end{center}
+\caption{\label{fig:exc}Fraction of identified exclusive anomalies in CMS subsystems by NN branches. Number of exclusive (when anomaly is happened in only one detector) anomalies is given in the brackets.}
+\end{figure}
 
 \section{Conclusions}
 In this work, we described a deep learning approach for inferring cause of data anomalies. While developed
 with the CMS experiment at CERN in mind, we use an agnostic approach which allows the straightforward
-adaptation of the proposed algorithm to different experimental setups. Method shows its ability to decompose anomalies by separate channels, being applied to data collected by the CMS experiment in 2010. Although only global quality labels were used for training, we got clear correlation between sub-networks’ outputs and corresponding true subsystem labels, what proves correctness of obtained results.
+adaptation of the proposed algorithm to different experimental setups. Method shows its ability to decompose anomalies by separate channels, being applied to data collected by the CMS experiment in 2010. Although only global quality labels were used for training, we got correlation between sub-networks’ outputs and corresponding true subsystem labels, what proves the principles of the approach.
 
 \section*{Acknowledgements}
 The research leading to these results was partly supported by Russian Science Foundation under grant agreement N\textsuperscript{\underline{\scriptsize o}} 17-72-20127.
@@ -141,10 +157,14 @@ The research leading to these results was partly supported by Russian Science Fo
 
 \item  Calderon A {\it at al}. {\it Open access to high-level data and analysis tools in the CMS experiment at the LHC} 2015 {\it J. Phys.: Conf. Ser.} {\bf 664} 032027
 
-\item  CMS Collaboration, The CMS experiment at the CERN LHC, 2008 {\it JINST} {\bf 3} S08004
+\item  CMS Collaboration,  The CMS experiment at the CERN LHC, 2008 {\it JINST} {\bf 3} S08004
+
+\item  Theano Development Team, {\it Theano: A Python framework for fast computation of mathematical expressions}. {\tt arXiv:1605.02688 [cs.SC]}, May 2016
+
+\item  Dieleman S {\it at al}. { Lasagne: First release.} {\tt10.5281/zenodo.27878}, August 2015.
+
 \end{thebibliography}
 
 
 
 \end{document}
-
